@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 	"text/template"
+	"unicode"
 
 	internalerror "github.com/Consoleaf/kopl/internal_error"
 	"github.com/Consoleaf/kopl/luatemplates"
@@ -82,12 +83,12 @@ func writeTemplate(tmpl template.Template, args luatemplates.TemplateArgsForInit
 }
 
 func convertToPascalCase(text string) string {
-    words := strings.FieldsFunc(text, func(r rune) bool {
-        return !unicode.IsLetter(r) && !unicode.IsNumber(r)
-    })
-    var pascalCaseText string
-    for _, word := range words {
-        pascalCaseText += strings.Title(word)
-    }
-    return pascalCaseText
+	words := strings.FieldsFunc(text, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+	})
+	var pascalCaseText string
+	for _, word := range words {
+		pascalCaseText += strings.Title(word)
+	}
+	return pascalCaseText
 }
