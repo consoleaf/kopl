@@ -51,7 +51,7 @@ var initCmd = &cobra.Command{
 		}
 		_ = repo
 		vars := luatemplates.TemplateArgsForInit{
-			ProjectName: projectName,
+			ProjectName: convertToPascalCase(projectName),
 		}
 
 		writeTemplate(luatemplates.MetaFileTemplate, vars)
@@ -79,4 +79,15 @@ func writeTemplate(tmpl template.Template, args luatemplates.TemplateArgsForInit
 	if err != nil {
 		internalerror.ErrorExitf("While trying to write to %v: \n%v", filename, err)
 	}
+}
+
+func convertToPascalCase(text string) string {
+    words := strings.FieldsFunc(text, func(r rune) bool {
+        return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+    })
+    var pascalCaseText string
+    for _, word := range words {
+        pascalCaseText += strings.Title(word)
+    }
+    return pascalCaseText
 }
