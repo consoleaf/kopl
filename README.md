@@ -47,10 +47,23 @@ kopl check
 
 ### Deploy Project to a Device
 
-_(This command is currently a placeholder and will be implemented in future versions.)_
+Usage:
+`kopl deploy [flags]`
+
+Flags:
 
 ```bash
-kopl deploy
+-d, --deploy-path string Path to the koreader directory on device. Defaults to /mnt/us/koreader (default "/mnt/us/koreader/plugins")
+-h, --help help for deploy
+-H, --host string Network address of the KOReader instance. Defaults to 192.168.15.244 (default for Usbnetlite) (default "192.168.15.244")
+-p, --port int HTTP Inspector port. Defaults to 8080 (default 8080)
+-P, --ssh-password string SSH password
+-s, --ssh-port int SSH port. Use this if you have a separate SSH instance running.
+-u, --ssh-user string SSH username (default "root")`
+```
+
+```bash
+kopl deploy -H 192.168.1.73 ~/projects/TRMNL.koplugin/
 ```
 
 ## License
