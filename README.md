@@ -81,7 +81,7 @@ Roadmap:
 
 - [x] Implement basic REPL
 - [ ] Automatically install `repl.koplugin`
-- [ ] Ability to `require` modules and plugins in a sane way
+- [x] Ability to `require` modules and plugins in a sane way
 
 Usage:
 `kopl repl [flags]`
