@@ -47,7 +47,7 @@ var initCmd = &cobra.Command{
 				// DefaultBranch: "main",
 			},
 		})
-		if err != nil {
+		if err != nil && err.Error() != "repository already exists" {
 			internalerror.ErrorExitf("While running `git init`: \n%v", err)
 		}
 		_ = repo
