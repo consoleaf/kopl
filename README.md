@@ -86,6 +86,8 @@ Roadmap:
 Usage:
 `kopl repl [flags]`
 
+In the REPL, KOReader's state is available as a global `ui`.
+
 Flags:
 
 ```bash
