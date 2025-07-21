@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	httpinspector "github.com/Consoleaf/kopl/http_inspector"
 	koreaderinspector "github.com/Consoleaf/koreader-http-inspector"
 	"github.com/pkg/sftp"
 	"github.com/spf13/cobra"
@@ -17,8 +18,6 @@ import (
 )
 
 var (
-	address    string
-	port       int
 	sshPort    int
 	deployPath string
 	localPath  string
@@ -29,20 +28,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
-	deployCmd.Flags().StringVarP(
-		&address,
-		"host",
-		"H",
-		"192.168.15.244",
-		"Network address of the KOReader instance. Defaults to 192.168.15.244 (default for Usbnetlite)",
-	)
-	deployCmd.Flags().IntVarP(
-		&port,
-		"port",
-		"p",
-		8080,
-		"HTTP Inspector port. Defaults to 8080",
-	)
+	httpinspector.AddArgs(deployCmd)
 	deployCmd.Flags().IntVarP(
 		&sshPort,
 		"ssh-port",
@@ -100,7 +86,7 @@ var deployCmd = &cobra.Command{
 }
 
 func deployCmdImpl(_ *cobra.Command, _ []string) error {
-	insp, err := koreaderinspector.New(fmt.Sprintf("http://%s:%d/", address, port))
+	insp, err := koreaderinspector.New(fmt.Sprintf("http://%s:%d/", httpinspector.Host, httpinspector.Port))
 	if err != nil {
 		return err
 	}
@@ -112,6 +98,9 @@ func deployCmdImpl(_ *cobra.Command, _ []string) error {
 		fmt.Println("SSH port not provided. Turning on SSH over HTTP Inspector...")
 
 		err = insp.SSHStop()
+		if err != nil {
+			return err
+		}
 		sshPort, err = insp.SSHStart()
 		if err != nil {
 			return err
@@ -170,7 +159,7 @@ func syncDirToRemote() error {
 	remoteBasePath := deployPath
 	remoteTargetDir := filepath.Join(remoteBasePath, name)
 
-	fmt.Printf("Preparing to sync local dir '%s' to remote '%s@%s:%v' as '%s'...\n", localPath, sshUser, address, sshPort, remoteTargetDir)
+	fmt.Printf("Preparing to sync local dir '%s' to remote '%s@%s:%v' as '%s'...\n", localPath, sshUser, httpinspector.Host, sshPort, remoteTargetDir)
 
 	config := &ssh.ClientConfig{
 		User: sshUser,
@@ -182,7 +171,7 @@ func syncDirToRemote() error {
 	}
 	conn, err := ssh.Dial(
 		"tcp",
-		fmt.Sprintf("%s:%d", address, sshPort),
+		fmt.Sprintf("%s:%d", httpinspector.Host, sshPort),
 		config,
 	)
 	if err != nil {
@@ -218,6 +207,10 @@ func syncDirToRemote() error {
 			d.Name() == "koreader") {
 			fmt.Printf("Skipping directory: %s\n", path)
 			return filepath.SkipDir // Skip this directory and its contents
+		}
+
+		if strings.HasPrefix(d.Name(), ".") {
+			return nil
 		}
 
 		// Convert to Unix-style path for SFTP

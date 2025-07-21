@@ -47,6 +47,13 @@ kopl check
 
 ### Deploy Project to a Device
 
+_work-in-progress_
+
+Roadmap:
+
+- [x] Deploy local projects
+- [ ] Deploy projects from a Git remote (github by default): `kopl deploy Consoleaf/repl.koplugin`
+
 Usage:
 `kopl deploy [flags]`
 
@@ -64,6 +71,27 @@ Flags:
 
 ```bash
 kopl deploy -H 192.168.1.73 ~/projects/TRMNL.koplugin/
+```
+
+### Use a REPL
+
+_work-in-progress_: for this to work, you'll need to install [repl.koplugin](https://github.com/Consoleaf/repl.koplugin)
+
+Roadmap:
+
+- [x] Implement basic REPL
+- [ ] Automatically install `repl.koplugin`
+- [ ] Ability to `require` modules and plugins in a sane way
+
+Usage:
+`kopl repl [flags]`
+
+Flags:
+
+```bash
+-h, --help help for repl
+-H, --host string Network address of the KOReader instance. Defaults to 192.168.15.244 (default for Usbnetlite) (default "192.168.15.244")
+-p, --port int HTTP Inspector port. Defaults to 8080 (default 8080)
 ```
 
 ## License
