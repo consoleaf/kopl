@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"strings"
 
-	httpinspector "github.com/Consoleaf/kopl/http_inspector"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(replCmd)
-	httpinspector.AddArgs(replCmd)
+	AddInspectorArgs(replCmd)
+	AddSSHFlags(replCmd)
 }
 
 var replCmd = &cobra.Command{
@@ -30,15 +29,32 @@ var replCmd = &cobra.Command{
 	},
 }
 
+func ensureReplPlugin() error {
+	res, err := Inspector.Get("ui/Repl/fullname")
+	if err != nil {
+		return err
+	}
+	if string(res) == "Repl" {
+		return nil
+	}
+	logger.Info("Installing 'consoleaf/repl.koplugin'")
+	return installImpl("consoleaf/repl.koplugin")
+}
+
 func main(_ *cobra.Command, _ []string) error {
 	const (
 		exitCommand = "exit"
 		quitCommand = "quit"
 	)
 
-	httpinspector.Initialize()
+	InitializeInspector()
 
-	httpinspector.Inspector.Get("/ui/Repl/clean/")
+	err := ensureReplPlugin()
+	if err != nil {
+		return err
+	}
+
+	Inspector.Get("/ui/Repl/clean/")
 
 	fmt.Printf(
 		"KOReader Lua REPL. Type '%s' or '%s' to exit.",
@@ -74,7 +90,7 @@ func main(_ *cobra.Command, _ []string) error {
 		result, out, complete, err := Evaluate(input)
 		incomplete = !complete
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error from KOReader: %v\n", err)
+			logger.Error(err.Error())
 		} else if !complete {
 		} else {
 			if len(out) > 0 {
@@ -94,7 +110,7 @@ type ReplResponse struct {
 }
 
 func Evaluate(code string) (any, []string, bool, error) {
-	ret, err := httpinspector.Inspector.Get("/ui/Repl/repl/" + base64.StdEncoding.EncodeToString([]byte(code)))
+	ret, err := Inspector.Get("/ui/Repl/repl/" + base64.StdEncoding.EncodeToString([]byte(code)))
 	if err != nil {
 		return "", []string{}, true, err
 	}
@@ -102,7 +118,11 @@ func Evaluate(code string) (any, []string, bool, error) {
 	var _response []ReplResponse
 	err = json.Unmarshal(ret, &_response)
 	if err != nil {
-		return "", []string{}, true, fmt.Errorf("%v\nValue: %v", err, string(ret))
+		return "", []string{}, true, fmt.Errorf(
+			"couldn't parse response: %v\nValue: %v",
+			err,
+			string(ret),
+		)
 	}
 
 	response := _response[0]
@@ -111,7 +131,7 @@ func Evaluate(code string) (any, []string, bool, error) {
 		if response.Error == "code is incomplete" {
 			return "", []string{}, false, nil
 		}
-		return "", []string{}, true, fmt.Errorf("%v", response.Error)
+		return "", []string{}, true, fmt.Errorf("error from REPL: %v", response.Error)
 	}
 
 	rv := reflect.ValueOf(response.Return)

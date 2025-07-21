@@ -1,4 +1,4 @@
-package httpinspector
+package cmd
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ var (
 	Inspector *koreaderinspector.HTTPInspectorClient
 )
 
-func AddArgs(command *cobra.Command) {
+func AddInspectorArgs(command *cobra.Command) {
 	envHost, exists := os.LookupEnv("KOREADER_INSPECTOR_HOST")
 	if exists {
 		Host = envHost
@@ -46,7 +46,7 @@ func AddArgs(command *cobra.Command) {
 		"HTTP Inspector port. You can also set this in envvar KOREADER_INSPECTOR_PORT")
 }
 
-func Initialize() {
+func InitializeInspector() {
 	var err error
 	Inspector, err = koreaderinspector.New(fmt.Sprintf("http://%s:%d/", Host, Port))
 	if err != nil {
@@ -61,4 +61,20 @@ func Initialize() {
 	Inspector.Logger = *slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
 	}))
+}
+
+func restartKOReader() {
+	fmt.Println("Restarting KOReader...")
+
+	// HACK:
+	// If SSH is running during restart,
+	// `dropbear` for some reason inherits
+	// the descriptor for HTTP Inspector's open port.
+	// To prevent that, we stop SSH before restartng KOReader.
+	err := Inspector.SSHStop()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	Inspector.RestartKOReader()
 }

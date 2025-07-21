@@ -7,6 +7,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/pkg/sftp v1.13.9
 	github.com/spf13/cobra v1.9.1
+	github.com/xyproto/randomstring v1.2.0
 	golang.org/x/crypto v0.40.0
 )
 

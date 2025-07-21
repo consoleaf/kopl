@@ -1,3 +1,4 @@
+// Package cmd contains command implementations
 package cmd
 
 import (
