@@ -32,6 +32,8 @@ go install github.com/Consoleaf/kopl@latest
 
 ## Usage
 
+WARNING: This tool requires HTTP Inspector to be enabled!
+
 ### Initialize a new KOReader Plugin Project
 
 To create a new KOReader plugin project, use the `init` command:
