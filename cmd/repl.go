@@ -12,7 +12,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const MinimalRequiredReplKoplugin = "v0.0.2"
+const MinimalRequiredReplKoplugin = "v0.0.3"
 
 func init() {
 	rootCmd.AddCommand(replCmd)
