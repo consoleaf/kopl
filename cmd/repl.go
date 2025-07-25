@@ -10,7 +10,10 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"golang.org/x/mod/semver"
 )
+
+const MinimalRequiredReplKoplugin = "v0.0.1"
 
 func init() {
 	rootCmd.AddCommand(replCmd)
@@ -29,18 +32,6 @@ var replCmd = &cobra.Command{
 	},
 }
 
-func ensureReplPlugin() error {
-	res, err := Inspector.Get("ui/Repl/fullname")
-	if err != nil {
-		return err
-	}
-	if string(res) == "Repl" {
-		return nil
-	}
-	logger.Info("Installing 'consoleaf/repl.koplugin'")
-	return installImpl("consoleaf/repl.koplugin")
-}
-
 func main(_ *cobra.Command, _ []string) error {
 	const (
 		exitCommand = "exit"
@@ -54,10 +45,8 @@ func main(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	Inspector.Get("/ui/Repl/clean/")
-
 	fmt.Printf(
-		"KOReader Lua REPL. Type '%s' or '%s' to exit.",
+		"KOReader Lua REPL. Type '%s' or '%s' to exit.\n",
 		exitCommand,
 		quitCommand,
 	)
@@ -190,4 +179,29 @@ func (o *outputStrings) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("unexpected type for OutputStrings: %s", data)
+}
+
+func ensureReplPlugin() error {
+	logger.Warn("Checking repl.koplugin")
+	res, err := Inspector.Get("ui/Repl/fullname")
+	if err != nil {
+		return err
+	}
+	if string(res) == "Repl" {
+		if !isPluginOutdated() {
+			return nil
+		}
+		logger.Warn("repl.koplugin is outdated. Updating...")
+	}
+	logger.Info("Installing 'consoleaf/repl.koplugin'")
+	return installImpl("consoleaf/repl.koplugin")
+}
+
+func isPluginOutdated() bool {
+	res, _ := Inspector.Get("ui/Repl/version")
+	parsed := string(res)
+	if strings.Contains(parsed, "Res: No such table/object key: version") {
+		return true
+	}
+	return semver.Compare(parsed, MinimalRequiredReplKoplugin) < 0
 }
