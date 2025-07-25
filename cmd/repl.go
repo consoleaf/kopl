@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -13,7 +12,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const MinimalRequiredReplKoplugin = "v0.0.1"
+const MinimalRequiredReplKoplugin = "v0.0.2"
 
 func init() {
 	rootCmd.AddCommand(replCmd)
@@ -85,7 +84,9 @@ func main(_ *cobra.Command, _ []string) error {
 			if len(out) > 0 {
 				fmt.Println("[OUT] " + strings.Join(out, "\n[OUT] "))
 			}
-			fmt.Printf("[RET] %v\n", result)
+			if result != "<nil>" {
+				fmt.Printf("[RET] %v\n", result)
+			}
 		}
 	}
 
@@ -94,7 +95,7 @@ func main(_ *cobra.Command, _ []string) error {
 
 type ReplResponse struct {
 	Error  string        `json:"error"`
-	Return any           `json:"ret"`
+	Return string        `json:"ret"`
 	Output outputStrings `json:"out"`
 }
 
@@ -123,35 +124,7 @@ func Evaluate(code string) (any, []string, bool, error) {
 		return "", []string{}, true, fmt.Errorf("error from REPL: %v", response.Error)
 	}
 
-	rv := reflect.ValueOf(response.Return)
-	if rv.Kind() == reflect.Map {
-		nKey := reflect.ValueOf("n")
-		nValue := rv.MapIndex(nKey) // Get the value associated with key "n"
-
-		if nValue.Kind() == reflect.Interface && !nValue.IsNil() {
-			nValue = nValue.Elem() // Get the concrete value stored inside the interface
-		}
-
-		var isZero bool
-
-		if nValue.IsValid() {
-			switch nValue.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				isZero = nValue.Int() == 0
-			case reflect.Float32, reflect.Float64:
-				isZero = nValue.Float() == 0
-			}
-		}
-
-		if isZero {
-			return nil, response.Output, true, nil
-		}
-	}
-	if rv.Kind() == reflect.Slice {
-		return rv.Index(0).Interface(), response.Output, true, nil
-	}
-
-	return nil, response.Output, true, nil
+	return response.Return, response.Output, true, nil
 }
 
 // We need this because if an empty table is sent from Lua, it'll be encoded as {}
