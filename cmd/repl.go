@@ -7,12 +7,18 @@ import (
 	"log"
 	"strings"
 
-	"github.com/manifoldco/promptui"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/chzyer/readline"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 )
 
 const MinimalRequiredReplKoplugin = "v0.0.3"
+
+var (
+	initialPromptStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#AA00AA"))
+	continuePromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#AA00AA"))
+)
 
 func init() {
 	rootCmd.AddCommand(replCmd)
@@ -50,18 +56,28 @@ func main(_ *cobra.Command, _ []string) error {
 		quitCommand,
 	)
 
-	prompt := promptui.Prompt{}
+	rl, err := readline.NewEx(&readline.Config{
+		HistoryFile:     "/tmp/readline.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+	rl.CaptureExitSignal()
 
 	var incomplete bool
-
 	for {
 		if incomplete {
-			prompt.Label = "..."
+			rl.SetPrompt(continuePromptStyle.Render("... "))
 		} else {
-			prompt.Label = ">>>"
+			rl.SetPrompt(initialPromptStyle.Render(">>> "))
 		}
 
-		input, err := prompt.Run()
+		input, err := rl.Readline()
 		if err != nil {
 			return err
 		}
