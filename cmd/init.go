@@ -32,7 +32,7 @@ var initCmd = &cobra.Command{
 		}
 		projectName := path.Base(path.Join(cwd, args[0]))
 		if !strings.HasSuffix(projectName, ".koplugin") {
-			internalerror.ErrorExitf("KOreader plugin names end with .koreader. Got: %q", projectName)
+			internalerror.ErrorExitf("KOreader plugin names end with \".koplugin\". Got: %q", projectName)
 		}
 		projectName = strings.Replace(projectName, ".koplugin", "", 1)
 
