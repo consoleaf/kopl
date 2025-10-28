@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -9,11 +11,10 @@ import (
 )
 
 var (
-	SSHPort     int
-	SSHUser     string
-	SSHPassword string
-
-	sshClient *ssh.Client
+	SSHPort         int
+	SSHUser         string
+	SSHPassword     string
+	SSHIdentityPath string
 )
 
 func AddSSHFlags(cmd *cobra.Command) {
@@ -37,6 +38,13 @@ func AddSSHFlags(cmd *cobra.Command) {
 		"P",
 		"",
 		"SSH password",
+	)
+	cmd.Flags().StringVarP(
+		&SSHIdentityPath,
+		"ssh-identity",
+		"i",
+		"",
+		"SSH identity file",
 	)
 }
 
@@ -64,14 +72,32 @@ func connectSSH() (*ssh.Client, error) {
 		return nil, fmt.Errorf("SSH port is %v", SSHPort)
 	}
 
+	var sshAuth []ssh.AuthMethod
+	var signers []ssh.Signer
+
+	sshAuth = append(sshAuth, ssh.Password(SSHPassword))
+	if SSHIdentityPath != "" {
+		identity, err := makeIdentityFromPath(SSHIdentityPath)
+		if err != nil {
+			return nil, err
+		}
+		signers = append(signers, identity)
+	}
+	signers = append(signers, makeDotSshIdentities()...)
+
+	if len(signers) != 0 {
+		sshAuth = append(sshAuth, ssh.PublicKeys(signers...))
+	}
+
 	config := &ssh.ClientConfig{
-		User: SSHUser,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(SSHPassword),
-		},
+		User:            SSHUser,
+		Auth:            sshAuth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         time.Second * 5,
 	}
+
+	logger.Debug("Connecting over SSH", "host", Host, "port", SSHPort)
+
 	conn, err := ssh.Dial(
 		"tcp",
 		fmt.Sprintf("%s:%d", Host, SSHPort),
@@ -95,4 +121,43 @@ func makeRevertSSHAllowNoPassword() (func(), error) {
 			Inspector.SSHSetAllowNoPassword(allow)
 		}
 	}, nil
+}
+
+func makeIdentityFromPath(path string) (ssh.Signer, error) {
+	SSHIdentity, err := os.ReadFile(SSHIdentityPath)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read SSH identity file: %w", err)
+	}
+	SSHPrivateKey, err := ssh.ParsePrivateKey(SSHIdentity)
+	if err != nil {
+		return nil, err
+	}
+	return SSHPrivateKey, nil
+}
+
+func makeDotSshIdentities() []ssh.Signer {
+	var res []ssh.Signer
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	sshDirList, err := os.ReadDir(path.Join(home, ".ssh"))
+	if err != nil {
+		return nil
+	}
+	for _, file := range sshDirList {
+		if file.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(path.Join(home, ".ssh", file.Name()))
+		if err != nil {
+			continue
+		}
+		key, err := ssh.ParsePrivateKey(data)
+		if err != nil {
+			continue
+		}
+		res = append(res, key)
+	}
+	return res
 }
